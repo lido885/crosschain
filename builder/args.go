@@ -16,6 +16,7 @@ type builderOptions struct {
 	validator    *string
 	stakeOwner   *xc_types.Address
 	stakeAccount *string
+	feePayer     *xc_types.Address
 
 	asset *xc_types.IAsset
 }
@@ -45,6 +46,8 @@ func (opts *builderOptions) GetPriority() (xc_types.GasFeePriority, bool) {
 	return get(opts.gasFeePriority)
 }
 func (opts *builderOptions) GetPublicKey() ([]byte, bool) { return get(opts.publicKey) }
+
+func (opts *builderOptions) GetFeePayer() (xc_types.Address, bool) { return get(opts.feePayer) }
 
 // Other options
 func (opts *builderOptions) GetValidator() (string, bool)            { return get(opts.validator) }
@@ -105,6 +108,13 @@ func WithAsset(asset xc_types.IAsset) BuilderOption {
 		if asset != nil {
 			opts.asset = &asset
 		}
+		return nil
+	}
+}
+
+func WithFeePayer(feePayer xc_types.Address) BuilderOption {
+	return func(opts *builderOptions) error {
+		opts.feePayer = &feePayer
 		return nil
 	}
 }

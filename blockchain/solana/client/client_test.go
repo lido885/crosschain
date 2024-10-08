@@ -27,6 +27,9 @@ var (
 	//8FLngQGnatEDQwNBV27yFxuWDhvQfriaCL56fx84TxoN
 	recipientPrivk      = "2vLh8LUmwr9LVbFrJXKLcYcgMXAy52X6PHqZ9yhLvVfW1Fz3k1uJjheLcpUvum5oLYv8xZX5AnEXoMAEZMUMLyja"
 	recipientPrivateKey solana_sdk.PrivateKey
+
+	feePayerPrivk      = recipientPrivk
+	feePayerPrivateKey solana_sdk.PrivateKey
 )
 
 type ClientTestSuite struct {
@@ -48,6 +51,9 @@ func (suite *ClientTestSuite) SetupTest() {
 	// recipientPrivateKey = solana_sdk.NewWallet().PrivateKey
 	recipientPrivateKey = solana_sdk.MustPrivateKeyFromBase58(recipientPrivk)
 	fmt.Printf("recipient address: %s \nprivate: %s\n", recipientPrivateKey.PublicKey(), recipientPrivateKey)
+
+	feePayerPrivateKey = solana_sdk.MustPrivateKeyFromBase58(feePayerPrivk)
+	fmt.Printf("feePayer address: %s \nprivate: %s\n", feePayerPrivateKey.PublicKey(), feePayerPrivateKey)
 
 }
 
@@ -146,16 +152,18 @@ func (suite *ClientTestSuite) TestSPLTranfser() {
 func (suite *ClientTestSuite) TestSPLTranfserSetFeePayer() {
 	ctx := context.Background()
 
-	// feePayer := recipientPrivateKey.PublicKey().String()
+	feePayer := feePayerPrivateKey.PublicKey().String()
 
 	args, err := xcbuilder.NewTransferArgs(
-		types.Address(senderPrivateKey.PublicKey().String()),          //这里填写sol的主地址，转账时程序自动找到合约的关联账户地址
-		types.Address("AyqkhCrb8gt3PqiVMCshSy4to8wQcHzXtfCKbJ42qJLp"), //这里写sol的主地址，自动会创建关联地址
+		types.Address(senderPrivateKey.PublicKey().String()), //这里填写sol的主地址，转账时程序自动找到合约的关联账户地址
+		types.Address(recipientPrivateKey.PublicKey().String()),
+		//types.Address("AyqkhCrb8gt3PqiVMCshSy4to8wQcHzXtfCKbJ42qJLp"), //这里写sol的主地址，自动会创建关联地址
 		types.NewBigIntFromInt64(1),
 		xcbuilder.WithAsset(&types.TokenAssetConfig{
 			Contract: "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr",
 			Decimals: 6,
 		}),
+		xcbuilder.WithFeePayer(types.Address(feePayer)),
 	)
 	suite.Require().NoError(err)
 
@@ -175,14 +183,21 @@ func (suite *ClientTestSuite) TestSPLTranfserSetFeePayer() {
 	privateKey := ed25519.PrivateKey(solana_sdk.MustPrivateKeyFromBase58(senderPrivkeyStr))
 	signer := solana.NewLocalSigner(privateKey)
 
+	feePrivateKey := ed25519.PrivateKey(feePayerPrivateKey)
+	feeSigner := solana.NewLocalSigner(feePrivateKey)
+
 	sighashes, err := tx.Sighashes()
 	suite.Require().NoError(err)
 	suite.Require().Equal(len(sighashes), 1)
 
+	//fee
+	signatureFee, err := feeSigner.Sign(sighashes[0])
+	suite.Require().NoError(err)
+
 	signature, err := signer.Sign(sighashes[0])
 	suite.Require().NoError(err)
 
-	err = tx.AddSignatures(signature)
+	err = tx.AddSignatures(signatureFee, signature)
 	suite.Require().NoError(err)
 
 	err = suite.client.BroadcastTx(ctx, tx)

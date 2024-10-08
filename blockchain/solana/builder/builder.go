@@ -177,14 +177,26 @@ func (b *TxBuilder) NewTokenTransfer(args *xcbuilder.TransferArgs, input types.T
 		)
 	}
 
-	return b.buildSolanaTx(instructions, accountFrom, txInput)
+	var feePayer solana.PublicKey
+	if fee, has := args.GetFeePayer(); has {
+		feePayer, _ = solana.PublicKeyFromBase58(string(fee))
+	} else {
+		feePayer = accountFrom
+	}
+
+	return b.buildSolanaTx(instructions, &feePayer, txInput)
 }
 
-func (txBuilder TxBuilder) buildSolanaTx(instructions []solana.Instruction, accountFrom solana.PublicKey, txInput *tx_input.TxInput) (*tx.Tx, error) {
+func (txBuilder TxBuilder) buildSolanaTx(instructions []solana.Instruction, feePayer *solana.PublicKey, txInput *tx_input.TxInput) (*tx.Tx, error) {
+	var opts []solana.TransactionOption
+	if feePayer != nil {
+		opts = append(opts, solana.TransactionPayer(*feePayer))
+	}
+
 	tx1, err := solana.NewTransaction(
 		instructions,
 		txInput.RecentBlockHash,
-		solana.TransactionPayer(accountFrom),
+		opts...,
 	)
 	if err != nil {
 		return nil, err

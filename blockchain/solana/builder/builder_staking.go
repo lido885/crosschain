@@ -56,7 +56,7 @@ func (txBuilder TxBuilder) Stake(args xcbuilder.StakeArgs, input xc_types.StakeT
 		// delegate the stake to the validator
 		stake.NewDelegateStakeInstruction(stakeInput.ValidatorVoteAccount, stakingAuth, stakeAccountPub).Build(),
 	)
-	tx, err := txBuilder.buildSolanaTx(instructions, stakingAuth, &stakeInput.TxInput)
+	tx, err := txBuilder.buildSolanaTx(instructions, &stakingAuth, &stakeInput.TxInput)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func (txBuilder TxBuilder) Unstake(args xcbuilder.StakeArgs, input xc_types.Unst
 		)
 	}
 
-	tx, err := txBuilder.buildSolanaTx(instructions, stakingAuth, &unstakeInput.TxInput)
+	tx, err := txBuilder.buildSolanaTx(instructions, &stakingAuth, &unstakeInput.TxInput)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +220,7 @@ func (txBuilder TxBuilder) Withdraw(args xcbuilder.StakeArgs, input xc_types.Wit
 		return nil, fmt.Errorf("cannot withdraw from %d stake accounts to satisfy unstaking target amount, try withdrawing a smaller amount", len(instructions)-1)
 	}
 
-	tx, err := txBuilder.buildSolanaTx(instructions, stakingAuth, &withdrawInput.TxInput)
+	tx, err := txBuilder.buildSolanaTx(instructions, &stakingAuth, &withdrawInput.TxInput)
 	if err != nil {
 		return nil, err
 	}
