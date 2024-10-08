@@ -179,7 +179,10 @@ func (b *TxBuilder) NewTokenTransfer(args *xcbuilder.TransferArgs, input types.T
 
 	var feePayer solana.PublicKey
 	if fee, has := args.GetFeePayer(); has {
-		feePayer, _ = solana.PublicKeyFromBase58(string(fee))
+		feePayer, err = solana.PublicKeyFromBase58(string(fee))
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		feePayer = accountFrom
 	}
